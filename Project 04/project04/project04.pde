@@ -1,19 +1,33 @@
 import controlP5.*;
 ControlP5 cp5;
 camControl cam = new camControl();
+
+//Data storage
 ArrayList<PVector> points;
 ArrayList<Integer> triangles;
+
+//Adjustable Parameters
 float gridSize;
 int rows;
 int cols;
 String fileName;
+PImage heightMap;
 float heightModifierValue;
 float snowThreshold;
+boolean COLOR;
+boolean STROKE;
+boolean BLEND;
+
+
+//Colors for height map
 color snow;
 color grass;
 color rock;
 color dirt;
 color water;
+
+
+
 
 void setup(){
   size(1200, 800, P3D);
@@ -44,9 +58,11 @@ void setup(){
   .setSize(80,25)
  ;
   
- cp5.addTextfield("LOAD FROM FILE")
+ cp5.addTextfield("LOADFILE")
  .setPosition(20,140)
- .setText("terrain1.png")
+ .setValue("terrain0")
+ .setAutoClear(false)
+ .setLabel("LOAD FROM FILE")
  ;
  
  cp5.addToggle("STROKE")
@@ -78,21 +94,28 @@ void setup(){
   .setValue(5.0f);
   ;
 
-  fileName = "terrain1.png";
+  //Setting default values for parameters
   gridSize = 30.0;
   rows = 10;
   cols = 10;
+  fileName = "terrain1";
+  heightMap = loadImage(fileName + ".png");
   heightModifierValue = 1.0f;
   snowThreshold = 5.0f;
-  buildGrid();
-  buildTriangleVerts();
-  applyHeightMap();
-
+  
+  //Set color values
   snow = color(255,255,255);
   grass = color(143,170,64);
   rock = color(135,135,135);
   dirt = color(160,126,84);
   water = color(0,75,200);
+  
+  //Calculate initial values
+  buildGrid();
+  buildTriangleVerts();
+  applyHeightMap();
+
+ 
 
 
 }
@@ -101,40 +124,74 @@ void draw(){
   cam.Update();
 
   background(50);
-  /*
-  //old grid
-  strokeWeight(10);
-  for(int i = 0; i < points.size(); i++){ //Draws grids as points
-    PVector temp = points.get(i);
-    stroke(map(temp.x, -(gridSize/2), gridSize/2, 0, 255), 0, map(temp.z, -(gridSize/2), gridSize/2, 0, 255));
-    point(temp.x, temp.y, temp.z);
+  
+  if(STROKE == true){
+    stroke(0);
   }
-  */
+  else{
+    noStroke();
+  }
   
   
+  //Draw triangles
   beginShape(TRIANGLES); //<>//
-  
   for(int i = 0; i < triangles.size(); i++){
     int vertIndex = triangles.get(i);
     PVector vert = points.get(vertIndex);
-    
     float relativeHeight = abs(vert.y * heightModifierValue / (-(snowThreshold)));
     
-    if(relativeHeight <= 1.0f && relativeHeight > 0.8f){
+    if(COLOR == true){
+    
+      if(relativeHeight > 1.0){
       fill(snow);
+      }
+      
+      else if(relativeHeight <= 1.0f && relativeHeight > 0.8f || relativeHeight > 1.0){
+        if(BLEND == true){
+          float ratio = (relativeHeight - 0.8f) / 0.2f;
+          color blended = lerpColor(rock, snow, ratio);
+          fill(blended);
+        }
+        else{
+          fill(snow);
+        }
+      
     }
     else if(relativeHeight <= 0.8f && relativeHeight > 0.4f){
-      fill(rock);
+      if(BLEND == true){
+          float ratio = (relativeHeight - 0.4f) / 0.4f;
+          color blended = lerpColor(grass, rock, ratio);
+          fill(blended);
+        }
+        else{
+          fill(rock);
+        }
     }
     else if(relativeHeight <= 0.4f && relativeHeight > 0.2f){
-      fill(grass);
+      if(BLEND == true){
+          float ratio = (relativeHeight - 0.2f) / 0.2f;
+          color blended = lerpColor(dirt, grass, ratio);
+          fill(blended);
+        }
+        else{
+          fill(grass);
+        }
     }
     else{
-      fill(water);
+      if(BLEND == true){
+          float ratio = relativeHeight / 0.2f;
+          color blended = lerpColor(water, dirt, ratio);
+          fill(blended);
+        }
+        else{
+          fill(water);
+        }
     }
     
-    
-    
+    }
+    else{
+      fill(255);
+    }
     vertex(vert.x, vert.y * heightModifierValue, vert.z);
   }
   
@@ -169,15 +226,10 @@ class camControl{
     perspective(radians(90.0f), width/(float)height, 0.1, 1000);
     camera(cam.xCam + cam.xTar, cam.yCam + cam.yTar, cam.zCam + cam.zTar, cam.xTar, cam.yTar, cam.zTar, 0, 1, 0);
     
-
     xCam = radius * cos(phi) * sin(theta);
     yCam = radius * cos(theta);
     zCam = radius * sin(theta) * sin(phi);
   }
-  
-
-  
-
   
   void Zoom(float val){
     int check = radius + (10 * int(val));
@@ -215,7 +267,6 @@ void buildTriangleVerts(){ //<>//
     triangles.add((vertsInRow * i + j) + 1);
     triangles.add((vertsInRow * i + j) + vertsInRow);
     
-    
     //lower
     triangles.add((vertsInRow * i + j) + 1);
     triangles.add((vertsInRow * i + j) + vertsInRow + 1);
@@ -225,14 +276,32 @@ void buildTriangleVerts(){ //<>//
   }
 }
 
+void applyHeightMap(){
+  
+  if(heightMap != null){
+  for(int i = 0; i <= rows; i++){
+    for(int j = 0; j <= cols; j++){
+      float xIndex = map(j, 0, cols + 1, 0, heightMap.width);
+      float yIndex = map(i, 0, rows + 1, 0, heightMap.height);
+      int HMcolor = heightMap.get(int(xIndex), int(yIndex));
+      
+      float heightFromColor = map(red(HMcolor), 0, 255, 0, 1.0f);
+      int vIndex = i * (cols + 1) + j;
+      points.get(vIndex).y = -heightFromColor;
+      
+    }
+  }
+  }
+}
 
 public void controlEvent(ControlEvent event){
   if(event.isController()){
     if(event.getController().getName() == "GENERATE"){
       buildGrid();
       buildTriangleVerts();
-      fileName = cp5.get(Textfield.class, "LOAD FROM FILE").getText();
-      println(fileName);
+      fileName = cp5.get(Textfield.class, "LOADFILE").getText();
+      heightMap = loadImage(fileName + ".png");
+      //println(fileName);
       applyHeightMap();
       
     }
@@ -247,6 +316,7 @@ public void controlEvent(ControlEvent event){
     }
     else if(event.getController().getName() == "HEIGHT MODIFIER"){
       heightModifierValue = event.getController().getValue();
+      applyHeightMap();
     }
     else if(event.getController().getName() == "SNOW THRESHOLD"){
       snowThreshold = event.getController().getValue();
@@ -254,20 +324,7 @@ public void controlEvent(ControlEvent event){
   }
 }
 
-void applyHeightMap(){
-  PImage heightMap = loadImage(fileName);
-  for(int i = 0; i <= rows; i++){
-    for(int j = 0; j <= cols; j++){
-      float xIndex = map(j, 0, cols + 1, 0, heightMap.width);
-      float yIndex = map(i, 0, rows + 1, 0, heightMap.height);
-      int HMcolor = heightMap.get(int(xIndex), int(yIndex));
-      
-      float heightFromColor = map(red(HMcolor), 0, 255, 0, 1.0f);
-      int vIndex = i * (cols + 1) + j;
-      points.get(vIndex).y = heightFromColor;
-    }
-  }
-}
+
 
 
 

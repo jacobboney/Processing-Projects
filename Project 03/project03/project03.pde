@@ -236,6 +236,7 @@ class camControl{
     xCam = radius * cos(phi) * sin(theta);
     yCam = radius * cos(theta);
     zCam = radius * sin(theta) * sin(phi);
+    println(degrees(phi), degrees(theta));
   }
   
   void AddLookAtTarget(PVector tar){
@@ -254,7 +255,7 @@ class camControl{
     int check = radius + (10 * int(val));
     if(check >= 30 && check <= 200){
       radius = check;
-      println(radius);
+      
     }
   }
 }
