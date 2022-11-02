@@ -1,7 +1,11 @@
 import controlP5.*;
 ControlP5 cp5;
 camControl cam = new camControl();
-
+ArrayList<PVector> points;
+ArrayList<Integer> triangles;
+float gridSize;
+int rows;
+int cols;
 
 void setup(){
   size(1200, 800, P3D);
@@ -66,28 +70,47 @@ void setup(){
   .setValue(10);
   ;
 
+  
+  gridSize = 30.0;
+  rows = 10;
+  cols = 10;
+
+  buildGrid();
+  buildTriangleVerts();
+
+
+
 }
 
 void draw(){
   cam.Update();
 
-  background(0,0,0);
-  box(50);
-  for(int i = -100; i <= 100; i = i + 10){
-    if(i == 0){
-      stroke(255,0,0);
-      line(-100, 0, i, 100, 0, i);
-      stroke(0, 0, 255);
-      line(i, 0, -100, i, 0, 100);
-      stroke(255);
-    }
-    else{
-      line(-100, 0, i, 100, 0, i);
-      line(i, 0, -100, i, 0, 100);
-    }
-    
+  background(50);
+  /*
+  //old grid
+  strokeWeight(10);
+  for(int i = 0; i < points.size(); i++){ //Draws grids as points
+    PVector temp = points.get(i);
+    stroke(map(temp.x, -(gridSize/2), gridSize/2, 0, 255), 0, map(temp.z, -(gridSize/2), gridSize/2, 0, 255));
+    point(temp.x, temp.y, temp.z);
   }
-
+  */
+  
+  
+  beginShape(TRIANGLES); //<>//
+  
+  for(int i = 0; i < triangles.size(); i++){
+    int vertIndex = triangles.get(i);
+    PVector vert = points.get(vertIndex);
+    
+    vertex(vert.x, vert.y, vert.z);
+  }
+  
+  endShape();
+ 
+  
+  
+  
   
   camera();
   perspective();
@@ -106,9 +129,9 @@ class camControl{
   float yTar = 0.0f;
   float zTar = 0.0f;
   
-  int radius = 200;
-  float phi = radians(45);
-  float theta = radians(135);
+  int radius = 30;
+  float phi = radians(90);
+  float theta = radians(140);
   
   void Update(){
     perspective(radians(90.0f), width/(float)height, 0.1, 1000);
@@ -136,6 +159,84 @@ class camControl{
 }
 
 
+void buildGrid(){
+  
+  points = new ArrayList();
+  
+  /*
+  float startX = -(gridSize / 2);
+  float startZ = -(gridSize / 2);
+  float rowInc = gridSize / rows;
+  float colInc = gridSize / cols;
+  
+  while(startZ <= (gridSize / 2)){
+    float z = startZ;
+    while(startX <= (gridSize / 2)){
+      float x = startX;
+      float y = 0;
+      startX += colInc;
+      points.add(new PVector(x,y,z));
+      
+    }
+    startZ += rowInc;
+    startX = -(gridSize / 2);
+  }
+  */
+  for(int i = 0; i <= rows; i++){
+    for(int j = 0; j <= cols; j++){
+      float z = (-(gridSize/2) + (gridSize/rows) * i);
+      float y = 0;
+      float x = (-(gridSize/2) + (gridSize/cols) * j);
+      
+      points.add(new PVector(x,y,z));
+      println(x,y,z);
+    }
+  }
+  
+  println("points on grid:", points.size());
+}
+
+void buildTriangleVerts(){ //<>//
+  triangles = new ArrayList();
+  int vertsInRow = cols + 1;
+  
+  for(int i = 0; i < rows; i++){
+    for(int j = 0; j < cols; j++){
+    //upper
+    triangles.add((vertsInRow * i + j));
+    triangles.add((vertsInRow * i + j) + 1);
+    triangles.add((vertsInRow * i + j) + vertsInRow);
+    
+    
+    //lower
+    triangles.add((vertsInRow * i + j) + 1);
+    triangles.add((vertsInRow * i + j) + vertsInRow + 1);
+    triangles.add((vertsInRow * i + j) + vertsInRow);
+    
+    }
+  }
+  println("triangle verts:", triangles.size());
+}
+
+
+public void controlEvent(ControlEvent event){
+  if(event.isController()){
+    if(event.getController().getName() == "GENERATE"){
+      buildGrid();
+      buildTriangleVerts();
+    }
+    else if(event.getController().getName() == "ROWS"){
+      rows = int(event.getController().getValue());
+    }
+    else if(event.getController().getName() == "COLUMNS"){
+      cols = int(event.getController().getValue());
+    }
+    else if(event.getController().getName() == "TERRAIN SIZE"){
+      gridSize = event.getController().getValue();
+    }
+  }
+}
+
 
 void mouseWheel(MouseEvent event){
   float e = event.getCount();
@@ -161,4 +262,5 @@ void mouseDragged(){
     cam.theta = radians(1);
     }
   }
+  println(degrees(cam.phi), degrees(cam.theta));
 }
