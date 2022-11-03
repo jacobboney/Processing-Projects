@@ -93,6 +93,11 @@ void setup(){
   .setDecimalPrecision(2)
   .setValue(5.0f);
   ;
+  
+   cp5.addButton("SMOOTH")
+  .setPosition(560,20)
+  .setSize(80,25)
+ ;
 
   //Setting default values for parameters
   gridSize = 30.0;
@@ -115,7 +120,6 @@ void setup(){
   buildTriangleVerts();
   applyHeightMap();
 
- 
 
 
 }
@@ -134,18 +138,16 @@ void draw(){
   
   
   //Draw triangles
-  beginShape(TRIANGLES); //<>//
+  beginShape(TRIANGLES);
   for(int i = 0; i < triangles.size(); i++){
     int vertIndex = triangles.get(i);
     PVector vert = points.get(vertIndex);
     float relativeHeight = abs(vert.y * heightModifierValue / (-(snowThreshold)));
     
     if(COLOR == true){
-    
       if(relativeHeight > 1.0){
       fill(snow);
       }
-      
       else if(relativeHeight <= 1.0f && relativeHeight > 0.8f || relativeHeight > 1.0){
         if(BLEND == true){
           float ratio = (relativeHeight - 0.8f) / 0.2f;
@@ -155,10 +157,9 @@ void draw(){
         else{
           fill(snow);
         }
-      
-    }
-    else if(relativeHeight <= 0.8f && relativeHeight > 0.4f){
-      if(BLEND == true){
+      }
+      else if(relativeHeight <= 0.8f && relativeHeight > 0.4f){
+        if(BLEND == true){
           float ratio = (relativeHeight - 0.4f) / 0.4f;
           color blended = lerpColor(grass, rock, ratio);
           fill(blended);
@@ -166,9 +167,9 @@ void draw(){
         else{
           fill(rock);
         }
-    }
-    else if(relativeHeight <= 0.4f && relativeHeight > 0.2f){
-      if(BLEND == true){
+      }
+      else if(relativeHeight <= 0.4f && relativeHeight > 0.2f){
+        if(BLEND == true){
           float ratio = (relativeHeight - 0.2f) / 0.2f;
           color blended = lerpColor(dirt, grass, ratio);
           fill(blended);
@@ -176,9 +177,9 @@ void draw(){
         else{
           fill(grass);
         }
-    }
-    else{
-      if(BLEND == true){
+      }
+      else{
+        if(BLEND == true){
           float ratio = relativeHeight / 0.2f;
           color blended = lerpColor(water, dirt, ratio);
           fill(blended);
@@ -186,21 +187,15 @@ void draw(){
         else{
           fill(water);
         }
-    }
-    
+      }
     }
     else{
       fill(255);
     }
     vertex(vert.x, vert.y * heightModifierValue, vert.z);
   }
-  
   endShape();
  
-  
-  
-  
-  
   camera();
   perspective();
 }
@@ -256,7 +251,7 @@ void buildGrid(){
   }
 }
 
-void buildTriangleVerts(){ //<>//
+void buildTriangleVerts(){
   triangles = new ArrayList();
   int vertsInRow = cols + 1;
   
@@ -294,6 +289,42 @@ void applyHeightMap(){
   }
 }
 
+void smoothing(){ //<>//
+  ArrayList<PVector> pointsCopy = new ArrayList();
+  for(int i = 0; i < points.size(); i++){
+    pointsCopy.add(points.get(i));
+  }
+
+  for(int i = 0; i < points.size(); i++){
+    
+      float sum = pointsCopy.get(i).y;
+      int count = 1;
+      int north = i - (cols + 1);
+      int south = i + (cols + 1);
+      boolean eastCheck = ((i + 1) <= (cols + (i * (cols + 1)))) && ((i + 1) < ((rows + 1) * (cols + 1)));
+      boolean westCheck = (i - 1) >= (cols + (i * (cols + 1)));
+      
+      if(north >= 0){
+        sum += pointsCopy.get(north).y;
+        count++;
+      }
+      if(south < ((rows + 1) * (cols + 1))){
+        sum += pointsCopy.get(south).y;
+        count++;
+      }
+      if(eastCheck){
+        sum += pointsCopy.get(i + 1).y;
+        count++;
+      }
+      if(westCheck){
+        sum += pointsCopy.get(i - 1).y;
+        count++;
+      }
+      points.get(i).y = sum / count;
+  }
+}
+
+
 public void controlEvent(ControlEvent event){
   if(event.isController()){
     if(event.getController().getName() == "GENERATE"){
@@ -301,9 +332,12 @@ public void controlEvent(ControlEvent event){
       buildTriangleVerts();
       fileName = cp5.get(Textfield.class, "LOADFILE").getText();
       heightMap = loadImage(fileName + ".png");
-      //println(fileName);
       applyHeightMap();
       
+      
+    }
+    else if(event.getController().getName() == "SMOOTH"){
+      smoothing();
     }
     else if(event.getController().getName() == "ROWS"){
       rows = int(event.getController().getValue());
@@ -316,7 +350,6 @@ public void controlEvent(ControlEvent event){
     }
     else if(event.getController().getName() == "HEIGHT MODIFIER"){
       heightModifierValue = event.getController().getValue();
-      applyHeightMap();
     }
     else if(event.getController().getName() == "SNOW THRESHOLD"){
       snowThreshold = event.getController().getValue();
