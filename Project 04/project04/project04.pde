@@ -213,7 +213,7 @@ class camControl{
   float yTar = 0.0f;
   float zTar = 0.0f;
   
-  int radius = 30;
+  int radius = 40;
   float phi = radians(90);
   float theta = radians(140);
   
@@ -227,8 +227,8 @@ class camControl{
   }
   
   void Zoom(float val){
-    int check = radius + (10 * int(val));
-    if(check >= 30 && check <= 200){
+    int check = radius + (5 * int(val));
+    if(check >= 10 && check <= 200){
       radius = check;
     }
   }
@@ -362,8 +362,14 @@ public void controlEvent(ControlEvent event){
 
 
 void mouseWheel(MouseEvent event){
-  float e = event.getCount();
-  cam.Zoom(e);
+  if(cp5.isMouseOver()){
+    return;
+  }
+  else{
+    float e = event.getCount();
+    cam.Zoom(e);
+  }
+  
 }
 
 void mouseDragged(){
